@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Claro Visa Portal",
+    "slug": "claro-visa-portal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {},
+    "web": {}
+  }
+}
