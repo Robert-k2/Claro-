@@ -23,7 +23,7 @@ const state = {
     { id: '1', consultant: 'tereza', date: '2026-11-10', time: '11:00', by: 'diego' },
     { id: '2', consultant: 'tereza', date: '2026-11-13', time: '11:30', by: null },
     { id: '3', consultant: 'tereza', date: '2026-11-20', time: '11:00', by: null },
-    { id: '4', consultant: 'S', date: '2026-11-09', time: '09:00', by: null },
+    { id: '4', consultant: 'martin', date: '2026-11-09', time: '09:00', by: null },
     { id: '5', consultant: 'martin', date: '2026-11-09', time: '09:30', by: 'camila' },
     { id: '6', consultant: 'martin', date: '2026-11-16', time: '10:00', by: null },
   ],
