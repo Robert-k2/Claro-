@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
-import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Card, Btn, Pill, Row, Txt, Muted, Section, Avatar, IconBadge, Progress, Field, Empty, Chip, C, toneOf } from './ui';
-import { PEOPLE, CASE_STATUSES, fmtDate, fmtRange, sortSlots, dueInfo, TODAY } from './data';
+import React, { useState } from 'react';  //imports react library to build the user interface and useState allows you to store and update information in componenets 
+import { View, Text } from 'react-native'; // the View component is a container for other components and the Text component is used to display text on the screen
+import { Ionicons } from '@expo/vector-icons'; // imports the Ionicons component from the @expo/vector-icons library, which provides a set of icons that can be used in the app
+import { Card, Btn, Pill, Row, Txt, Muted, Section, Avatar, IconBadge, Progress, Field, Empty, Chip, C, toneOf } from './ui'; // imports various UI components from a local file called ui.js. These components are used to build the user interface of the app, such as cards, buttons, text fields, and icons.
+import { PEOPLE, CASE_STATUSES, fmtDate, fmtRange, sortSlots, dueInfo, TODAY } from './data'; // import various data and utility fuctions from data.js 
 
-const LEVEL = { bad: C.bad, warn: C.warn, ok: C.sub };
-const isOpen = (d) => d.status === 'Missing' || d.status === 'Needs correction';
+const LEVEL = { bad: C.bad, warn: C.warn, ok: C.sub }; //variable groups colors together so they can be used else where in the code 
 
-function Stepper({ status }) {
+const isOpen = (d) => d.status === 'Missing' || d.status === 'Needs correction'; //Checks whether a document is missing or needs correction and returns tru if either value is met 
+
+function Stepper({ status }) {  //visual progress tracker showing the current stage of a visa application
+
   const final = status === 'Approved' || status === 'Rejected';
-  const idx = final ? 2 : status === 'Submitted' ? 1 : 0;
-  const labels = ['Preparation', 'Submitted', final ? status : 'Decision'];
-  return (
-    <View style={{ flexDirection: 'row', marginTop: 16 }}>
+  const idx = final ? 2 : status === 'Submitted' ? 1 : 0; //Stores the current step index 0 -Preparation,  1- Submitted, 2 -Approved or Rejected   
+  const labels = ['Preparation', 'Submitted', final ? status : 'Decision'];  //Variable stores the labels for each step in the process 
+  return ( /*Returns the UI-arranges it on the application*/
+    <View style={{ flexDirection: 'row', marginTop: 16 }}>  
       {labels.map((l, i) => {
         const done = i < idx || (final && i === 2 && status === 'Approved');
         const rej = final && i === 2 && status === 'Rejected';
         const on = i <= idx;
-        const col = rej ? C.bad : on ? C.brand : C.line;
-        return (
-          <View key={l} style={{ flex: 1, alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+        const col = rej ? C.bad : on ? C.brand : C.line;  //Uses a nested ternary operator to choose the colour.
+        return (//Returns the UI - arranges it on the top of the application  
+          <View key={l} style={{ flex: 1, alignItems: 'center' }}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}> 
               <View style={{ flex: 1, height: 3, backgroundColor: i === 0 ? 'transparent' : (i <= idx ? C.brand : C.line) }} />
               <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: on ? col : C.white, borderWidth: 2, borderColor: col, alignItems: 'center', justifyContent: 'center' }}>
                 {done ? <Ionicons name="checkmark" size={15} color={C.white} /> : rej ? <Ionicons name="close" size={15} color={C.white} /> : on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.white }} /> : null}
@@ -36,8 +38,8 @@ function Stepper({ status }) {
 }
 
 export function CaseScreen({ S, who, a }) {
-  const c = S.cases[who];
-  const approved = c.docs.filter((d) => d.status === 'Approved').length;
+  const c = S.cases[who]; //Selects the case belonging to the specified person.
+  const approved = c.docs.filter((d) => d.status === 'Approved').length; //Counts approved documents
   const next = c.docs.filter(isOpen).sort((x, y) => (x.due || '9').localeCompare(y.due || '9'))[0];
   const nextAt = next ? c.docs.indexOf(next) : -1;
   return (

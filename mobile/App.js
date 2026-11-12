@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as DocumentPicker from 'expo-document-picker';
-import { PEOPLE, TODAY } from './src/data';
-import { api, MODE } from './src/api';
-import { C, shadow } from './src/ui';
-import { CaseScreen, BookScreen, MineScreen, SlotsScreen, ReviewScreen, CasesScreen } from './src/screens';
+import React, { useEffect, useState } from 'react'; //use effect to store data that change, useState to run code at certain momements like when the screen first opens 
+import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';//Basis buidling blocks from mobile screens 
+import { StatusBar } from 'expo-status-bar'; //controls the phone's topbar 
+import { Ionicons } from '@expo/vector-icons'; //A set of already made icons  
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'; //Helps avoid the phones notchs at the top and the home bar at the bottom 
+import * as DocumentPicker from 'expo-document-picker';//Let the user pick a file from the phones server 
+import { PEOPLE, TODAY } from './src/data'; //Imports from file , the list of users and todays data  
+import { api, MODE } from './src/api'; //Import from files functions that talk to the server 
+import { C, shadow } from './src/ui'; //Imports colors and a shadow style 
+import { CaseScreen, BookScreen, MineScreen, SlotsScreen, ReviewScreen, CasesScreen } from './src/screens'; //Six screens shown in the app 
 
 const TABS = {
   client: [['case', 'My case', 'document-text'], ['book', 'Book', 'calendar'], ['mine', 'Bookings', 'bookmark']],
   consultant: [['slots', 'My slots', 'time'], ['review', 'Documents', 'checkmark-done']],
-  admin: [['cases', 'All cases', 'people']],
+  admin: [['cases', 'All cases', 'people']], //Defines which tabs are available for each role 
 };
 const SUBTITLE = { client: 'Your Czech study visa', consultant: 'Visa consultant', admin: 'Administrator' };
 
