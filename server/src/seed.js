@@ -9,10 +9,10 @@ const cases = [
     key: 'camila', name: 'Camila Reyes', from: 'Bogotá', uni: 'Charles University', status: 'Preparation',
     docs: [
       doc('Passport copy', 'Approved'),
-      doc('University acceptance letter', 'Submitted', '2026-10-15'),
-      doc('Proof of accommodation', 'Missing', '2026-10-20'),
-      doc('Health insurance', 'Needs correction', '2026-10-23', 'Policy must cover at least 60,000 EUR and the full stay.'),
-      doc('Proof of funds', 'Missing', '2026-10-30'),
+      doc('University acceptance letter', 'Submitted', '2026-11-15'),
+      doc('Proof of accommodation', 'Missing', '2026-11-20'),
+      doc('Health insurance', 'Needs correction', '2026-11-23', 'Policy must cover at least 60,000 EUR and the full stay.'),
+      doc('Proof of funds', 'Missing', '2026-11-30'),
     ],
   },
   {
@@ -23,12 +23,12 @@ const cases = [
 ];
 
 const slots = [
-  { consultant: 'tereza', date: '2026-10-13', time: '11:00', by: 'diego' },
-  { consultant: 'tereza', date: '2026-10-13', time: '11:30', by: null },
-  { consultant: 'tereza', date: '2026-10-20', time: '11:00', by: null },
-  { consultant: 'martin', date: '2026-10-09', time: '09:00', by: null },
-  { consultant: 'martin', date: '2026-10-09', time: '09:30', by: 'camila' },
-  { consultant: 'martin', date: '2026-10-16', time: '10:00', by: null },
+  { consultant: 'tereza', date: '2026-11-10', time: '11:00', by: 'diego' },
+  { consultant: 'tereza', date: '2026-11-13', time: '11:30', by: null },
+  { consultant: 'tereza', date: '2026-11-20', time: '11:00', by: null },
+  { consultant: 'martin', date: '2026-11-09', time: '09:00', by: null },
+  { consultant: 'martin', date: '2026-11-09', time: '09:30', by: 'camila' },
+  { consultant: 'martin', date: '2026-11-16', time: '10:00', by: null },
 ];
 
 export async function seedIfEmpty() {
