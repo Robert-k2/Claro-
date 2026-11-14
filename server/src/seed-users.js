@@ -17,7 +17,7 @@ async function create({ name, role, key }) {
 await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/claro_visa');
 
 await create({ name: 'Admin', role: 'admin', key: null });
-await create({ name: 'Martin Novák', role: 'consultant', key: 'martin' });
+await create({ name: 'Martin ', role: 'consultant', key: 'martin' });
 await create({ name: 'Tereza', role: 'consultant', key: 'tereza' });
 for (const c of await Case.find()) await create({ name: c.name, role: 'client', key: c.key });
 
