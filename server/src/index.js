@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import os from 'node:os';
+import { pathToFileURL } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -10,6 +12,35 @@ import { requireAuth, requireRole } from './middleware/auth.js';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is missing in server/.env');
 
+// ---------- IPv4 auto-detection ----------
+// Virtual adapters (WSL, Hyper-V, Docker, VMs, VPNs) are rarely the LAN address you want.
+const VIRTUAL = /(vethernet|virtualbox|vmware|vbox|wsl|docker|hyper-v|loopback|tailscale|zerotier|vpn|tap|tun)/i;
+const isPrivate = (ip) =>
+  /^10\./.test(ip) || /^192\.168\./.test(ip) || /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
+
+function getAllIPv4() {
+  const out = [];
+  for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+    for (const a of addrs || []) {
+      const v4 = a.family === 'IPv4' || a.family === 4;
+      if (v4 && !a.internal && !a.address.startsWith('169.254.')) {
+        out.push({ name, address: a.address, virtual: VIRTUAL.test(name) });
+      }
+    }
+  }
+  return out;
+}
+
+function getLocalIPv4() {
+  const all = getAllIPv4();
+  const pick =
+    all.find((a) => !a.virtual && isPrivate(a.address)) ||
+    all.find((a) => isPrivate(a.address)) ||
+    all[0];
+  return pick ? pick.address : '127.0.0.1';
+}
+
+// ---------- App ----------
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -29,6 +60,9 @@ const staff = requireRole('admin', 'consultant');
 const mayAccessCase = (req, key) => req.user.role !== 'client' || req.user.key === key;
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Returns the server's detected LAN IPv4 so a frontend can discover the API address
+app.get('/api/ip', (req, res) => res.json({ ip: getLocalIPv4(), port: Number(PORT), all: getAllIPv4() }));
 
 // Login and user management (users live in MongoDB)
 app.use('/api/auth', authRoutes);
@@ -140,8 +174,42 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.status ? err.message : 'Server error' });
 });
 
+// ---------- Start ----------
 const PORT = process.env.PORT || 4000;
-await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/claro_visa');
-await Case.init(); await Slot.init(); await User.init();   // build indexes
-await seedIfEmpty();
-app.listen(PORT, '0.0.0.0', () => console.log(`API on :${PORT}`));
+
+// Clean up common .env mistakes: surrounding quotes / whitespace
+const DEFAULT_URI = 'mongodb://127.0.0.1:27017/claro_visa';
+const rawUri = (process.env.MONGODB_URI || '').trim().replace(/^["']|["']$/g, '');
+const MONGODB_URI = rawUri || DEFAULT_URI;
+if (!/^mongodb(\+srv)?:\/\//.test(MONGODB_URI)) {
+  throw new Error(`MONGODB_URI must start with mongodb:// or mongodb+srv:// (got: "${MONGODB_URI.slice(0, 12)}...")`);
+}
+
+let databaseInitialization;
+export function initializeDatabase() {
+  if (!databaseInitialization) {
+    databaseInitialization = (async () => {
+      if (mongoose.connection.readyState !== 1) await mongoose.connect(MONGODB_URI);
+      await Case.init();
+      await Slot.init();
+      await User.init();
+      await seedIfEmpty();
+    })().catch((error) => {
+      databaseInitialization = undefined;
+      throw error;
+    });
+  }
+  return databaseInitialization;
+}
+
+export { app };
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await initializeDatabase();
+  app.listen(PORT, '0.0.0.0', () => {
+    const ip = getLocalIPv4();
+    console.log('API running:');
+    console.log(`  Local:   http://localhost:${PORT}`);
+    console.log(`  Network: http://${ip}:${PORT}   (auto-detected IPv4)`);
+  });
+}

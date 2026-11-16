@@ -36,6 +36,16 @@ npx expo start
 ```
 Android emulator reaches the API at 10.0.2.2 automatically; iOS simulator and web use localhost.
 
+## 4. Deploy on Vercel
+
+Deploy the API and web app as two Vercel projects:
+
+1. **API:** Import this repository, set the project Root Directory to `server`, and add `MONGODB_URI` (a MongoDB Atlas connection string) and `JWT_SECRET` (a strong random secret) to the project's Environment Variables for every environment you use. The API is served by `server/api/[...path].js`; verify it at `https://<api-domain>/api/health`.
+2. **Web app:** Create a second Vercel project from this repository with Root Directory `mobile`. Use the included Vercel build settings and set `EXPO_PUBLIC_API_URL` to the deployed API origin (for example, `https://<api-domain>`) before building. This is a build-time Expo variable; redeploy after changing it.
+3. Configure MongoDB Atlas network access to permit connections from the API deployment. Prefer a fixed Vercel egress IP where available; allowing `0.0.0.0/0` exposes the database endpoint to all IPs and should only be used with strong database credentials and least-privilege access.
+
+Vercel requires an external MongoDB service; the local Docker database is not available to deployed functions. The API seeds initial cases and slots when the database is empty, but it does not create login accounts. After the first API request initializes the database, run `npm run seed:users` once from `server` with `MONGODB_URI` set to the same Atlas database. Save the generated temporary passwords securely; users must change them at first login. The app currently records uploaded file names only, not file contents.
+
 ## Dictionary
 - Case status: Preparation -> Submitted -> Approved / Rejected
 - Document status: Missing / Submitted / Needs correction / Approved

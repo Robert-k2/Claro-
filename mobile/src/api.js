@@ -1,4 +1,3 @@
-
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -44,27 +43,73 @@ const BASE_URL = getApiUrl();
 
 export const MODE = 'MongoDB';
 
+// ---- Login session (kept in memory) ----
+let token = null;
+let onUnauthorized = null;
+
+// App.js registers a function here. It is called when the server says
+// the session is missing or expired, so the app can show the login screen.
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn;
+}
+
+export function logout() {
+  token = null;
+}
+
+export function isLoggedIn() {
+  return token !== null;
+}
+
+// Error type that carries the HTTP status and tells network errors apart
+export class ApiError extends Error {
+  constructor(message, status, isNetwork = false) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.isNetwork = isNetwork;
+  }
+}
+
 // Common request handler
 async function req(method, path, body) {
-  let response;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
+  let response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
     console.error(`API connection failed: ${BASE_URL}`, error);
-    throw new Error('Unable to connect to the server. Please try again.');
+    throw new ApiError(
+      'Unable to connect to the server. Please try again.',
+      0,
+      true,
+    );
   }
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    // Session missing or expired: back to the login screen
+    // (a wrong password on the login call is not a session problem)
+    const isLoginCall = path === '/api/auth/login';
+    if (response.status === 401 && !isLoginCall) {
+      token = null;
+      if (onUnauthorized) {
+        onUnauthorized();
+      }
+    }
+    throw new ApiError(
+      data.error || 'Request failed',
+      response.status,
+    );
   }
 
   return data;
@@ -72,6 +117,24 @@ async function req(method, path, body) {
 
 // Real backend API
 export const api = {
+  // Login. role is 'client' for the client screen.
+  // Returns the user: { name, role, key, mustChangePassword, ... }
+  login: async (name, password, role = 'client') => {
+    const data = await req('POST', '/api/auth/login', {
+      name,
+      password,
+      role,
+    });
+    token = data.token;
+    return data.user;
+  },
+
+  changePassword: (oldPassword, newPassword) =>
+    req('POST', '/api/auth/change-password', {
+      oldPassword,
+      newPassword,
+    }),
+
   state: () =>
     req('GET', '/api/state'),
 
@@ -97,6 +160,7 @@ export const api = {
   delSlot: (id) =>
     req('DELETE', `/api/slots/${id}`),
 
+  // For clients the server uses the logged-in user and ignores "by"
   book: (id, by) =>
     req('POST', `/api/slots/${id}/book`, { by }),
 
