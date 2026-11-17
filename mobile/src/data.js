@@ -3,6 +3,8 @@ export const CASE_STATUSES = ['Preparation', 'Submitted', 'Approved', 'Rejected'
 export const DOC_STATUSES = ['Missing', 'Submitted', 'Needs correction', 'Approved']; //documentation statues for each of the cases
 
 export const PEOPLE = { //Mock data for the worker roles 
+
+
   camila: { name: 'Camila Reyes', short: 'Camila', role: 'client' },
   tereza: { name: 'Tereza Králová', short: 'Tereza', role: 'consultant' },
   martin: { name: 'Martin Novák', short: 'Martin', role: 'consultant' },
