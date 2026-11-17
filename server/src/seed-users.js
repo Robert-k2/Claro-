@@ -4,31 +4,31 @@
 
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import crypto from 'crypto';
 import { User, Case } from './models.js';
 
-async function create({ name, role, key }) {
-  // Remove accidental whitespace from names
+async function create({ name, role, key, password }) {
   name = name.trim();
 
   const nameKey = name.toLowerCase();
 
-  // Check BOTH unique identifiers before inserting
+  // Check existing users
   const existing = key
     ? await User.findOne({
-        $or: [
-          { key },
-          { nameKey }
-        ]
+        $or: [{ key }, { nameKey }]
       })
     : await User.findOne({ nameKey });
 
   if (existing) {
     console.log(`exists: ${name} (${existing.role})`);
+
+    // Update password for existing users
+    await existing.setPassword(password);
+    existing.mustChangePassword = true;
+    await existing.save();
+
+    console.log(`Password updated for: ${name}`);
     return;
   }
-
-  const password = crypto.randomBytes(9).toString('base64url');
 
   const user = new User({
     name,
@@ -37,12 +37,11 @@ async function create({ name, role, key }) {
     mustChangePassword: true
   });
 
+  // Hash password before saving
   await user.setPassword(password);
   await user.save();
 
-  console.log(
-    `created ${role}: ${name}   temporary password: ${password}`
-  );
+  console.log(`created ${role}: ${name}`);
 }
 
 async function seedUsers() {
@@ -56,19 +55,22 @@ async function seedUsers() {
     await create({
       name: 'Admin',
       role: 'admin',
-      key: null
+      key: null,
+      password: 'admin123'
     });
 
     await create({
       name: 'Martin',
       role: 'consultant',
-      key: 'martin'
+      key: 'martin',
+      password: 'martin123'
     });
 
     await create({
       name: 'Tereza',
       role: 'consultant',
-      key: 'tereza'
+      key: 'tereza',
+      password: 'tereza123'
     });
 
     const cases = await Case.find();
@@ -77,7 +79,8 @@ async function seedUsers() {
       await create({
         name: c.name,
         role: 'client',
-        key: c.key
+        key: c.key,
+        password: 'client123'
       });
     }
 
