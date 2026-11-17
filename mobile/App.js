@@ -7,7 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import { PEOPLE, TODAY } from './src/data';
-import { api, MODE, logout, setUnauthorizedHandler } from './src/api';
+import {
+  api, MODE, BASE_URL, checkServer, logout, setUnauthorizedHandler,
+} from './src/api';
 import { C, shadow } from './src/ui';
 import {
   CaseScreen, BookScreen, MineScreen, SlotsScreen, ReviewScreen, CasesScreen,
@@ -40,6 +42,38 @@ const buttonStyle = {
   justifyContent: 'center',
 };
 
+// ---------- Server connection indicator (checks /api/health) ----------
+function ServerStatus() {
+  const [st, setSt] = useState({ checking: true });
+
+  const check = async () => {
+    setSt({ checking: true });
+    const r = await checkServer();
+    setSt({ checking: false, ...r });
+  };
+
+  useEffect(() => { check(); }, []);
+
+  const color = st.checking ? C.mut : st.ok ? '#16A34A' : C.bad;
+  const text = st.checking
+    ? 'Checking server...'
+    : st.ok
+      ? 'Server connected'
+      : `Cannot reach ${BASE_URL}`;
+
+  return (
+    <Pressable
+      onPress={check}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 }}
+    >
+      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
+      <Text style={{ color, fontSize: 13, fontWeight: '600', flexShrink: 1 }}>
+        {text}{!st.checking && !st.ok ? '  (tap to retry)' : ''}
+      </Text>
+    </Pressable>
+  );
+}
+
 // ---------- Login ----------
 function LoginScreen({ onLoggedIn }) {
   const insets = useSafeAreaInsets();
@@ -67,7 +101,8 @@ function LoginScreen({ onLoggedIn }) {
       }
       onLoggedIn(user);
     } catch (e) {
-      setError(e.isNetwork ? 'Cannot reach the server. Check your connection.' : e.message);
+      // For network errors the message already contains the address that failed
+      setError(e.isNetwork ? `${e.message}. Check that the API is running.` : e.message);
       setBusy(false);
     }
   };
@@ -88,11 +123,13 @@ function LoginScreen({ onLoggedIn }) {
         <Text style={{ fontSize: 30, fontWeight: '800', color: C.ink, marginTop: 16 }}>
           Claro Visa Portal
         </Text>
-        <Text style={{ fontSize: 16, color: C.sub, marginTop: 6, marginBottom: 36 }}>
+        <Text style={{ fontSize: 16, color: C.sub, marginTop: 6, marginBottom: 20 }}>
           {staff
             ? 'Log in to manage visa cases and documents.'
             : 'Log in to follow your visa case and upload documents.'}
         </Text>
+
+        <ServerStatus />
 
         <Text style={labelStyle}>Name</Text>
         <TextInput
@@ -312,7 +349,9 @@ function Shell() {
               {netErr ? 'Cannot reach the server' : 'Something went wrong'}
             </Text>
             <Text style={{ color: C.sub, textAlign: 'center', marginVertical: 8 }}>
-              {netErr ? 'Check that the API is running and EXPO_PUBLIC_API_URL is correct.' : err}
+              {netErr
+                ? `Could not connect to ${BASE_URL}.\nCheck that the API is running and EXPO_PUBLIC_API_URL is correct.`
+                : err}
             </Text>
             <Pressable onPress={refresh}>
               <Text style={{ color: C.brand, fontWeight: '800', fontSize: 16 }}>Try again</Text>
@@ -416,5 +455,3 @@ function Shell() {
 export default function App() {
   return <SafeAreaProvider><Shell /></SafeAreaProvider>;
 }
-
-

@@ -1,24 +1,28 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+const PORT = 4000;
+const TIMEOUT_MS = 10000;
+
 // Automatically detect the backend address
 function getApiUrl() {
-  // Use a configured production URL when available
+  // Use a configured URL when available (mobile/.env: EXPO_PUBLIC_API_URL=http://10.1.0.150:4000)
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL;
 
   if (configuredUrl) {
-    return configuredUrl.replace(/\/+$/, '');
+    return configuredUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
   }
 
   // Expo Web: use the computer hosting the frontend
   if (Platform.OS === 'web') {
-    return `http://${window.location.hostname}:4000`;
+    return `http://${window.location.hostname}:${PORT}`;
   }
 
   // Expo Go: detect the computer running the Expo development server
   const expoHost =
     Constants.expoConfig?.hostUri ||
-    Constants.expoGoConfig?.debuggerHost;
+    Constants.expoGoConfig?.debuggerHost ||
+    Constants.manifest2?.extra?.expoGo?.debuggerHost;
 
   if (expoHost) {
     const hostname = expoHost
@@ -27,19 +31,23 @@ function getApiUrl() {
       .split('/')[0]
       .split(':')[0];
 
-    return `http://${hostname}:4000`;
+    // Tunnel mode gives an *.exp.direct host that does not forward the API port
+    if (!/\.exp\.direct$|\.ngrok/.test(hostname)) {
+      return `http://${hostname}:${PORT}`;
+    }
   }
 
   // Android emulator fallback
   if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:4000';
+    return `http://10.0.2.2:${PORT}`;
   }
 
   // iOS simulator fallback
-  return 'http://localhost:4000';
+  return `http://localhost:${PORT}`;
 }
 
-const BASE_URL = getApiUrl();
+export const BASE_URL = getApiUrl();
+console.log('[api] BASE_URL =', BASE_URL);
 
 export const MODE = 'MongoDB';
 
@@ -71,6 +79,21 @@ export class ApiError extends Error {
   }
 }
 
+// Quick connectivity test. Returns { ok, url, error? }
+export async function checkServer() {
+  const url = `${BASE_URL}/api/health`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const r = await fetch(url, { signal: controller.signal });
+    return { ok: r.ok, url };
+  } catch (e) {
+    return { ok: false, url, error: String(e?.message || e) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Common request handler
 async function req(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
@@ -78,20 +101,27 @@ async function req(method, path, body) {
     headers.Authorization = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
   let response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
   } catch (error) {
-    console.error(`API connection failed: ${BASE_URL}`, error);
+    console.error(`API connection failed: ${BASE_URL}${path}`, error);
+    const timedOut = error?.name === 'AbortError';
     throw new ApiError(
-      'Unable to connect to the server. Please try again.',
+      `${timedOut ? 'Timed out connecting to' : 'Unable to connect to'} ${BASE_URL}`,
       0,
       true,
     );
+  } finally {
+    clearTimeout(timer);
   }
 
   const data = await response.json().catch(() => ({}));
