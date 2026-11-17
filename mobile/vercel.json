@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "installCommand": "npm install",
+  "buildCommand": "npx expo export --platform web --output-dir public",
+  "outputDirectory": "public",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
